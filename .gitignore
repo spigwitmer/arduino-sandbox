@@ -1,0 +1,6 @@
+*.o
+*.ao
+*.d
+prog.hex
+prog.bin
+prog
