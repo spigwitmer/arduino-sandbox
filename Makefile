@@ -42,7 +42,7 @@ ASMOBJS = $(patsubst %.S, %.ao, $(filter %.S, $(SOURCES)))
 CC = avr-gcc
 CXX = avr-g++
 OBJCOPY = avr-objcopy
-CXXFLAGS = -DARDUINO=160 -MMD \
+CXXFLAGS = -DARDUINO=160 \
 	-I$(ARDUINO_SRC_DIR) \
 	-I$(ARDUINO_VARIANTS_DIR) \
 	-I./fastled/ -Os -D__AVR_ATmega328P__ \
