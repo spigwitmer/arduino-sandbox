@@ -44,23 +44,23 @@ ASMOBJS = $(patsubst %.S, %.ao, $(filter %.S, $(SOURCES)))
 CC = avr-gcc
 CXX = avr-g++
 OBJCOPY = avr-objcopy
-CXXFLAGS = -DARDUINO=160 \
+CFLAGS = -DARDUINO=160 \
 	-I$(ARDUINO_SRC_DIR) \
 	-I$(ARDUINO_VARIANTS_DIR) \
 	-I./fastled/ -Os -D__AVR_ATmega328P__ \
 	-DF_CPU=16000000UL -mmcu=atmega328p \
 	-Wall -ffunction-sections -fdata-sections \
-	-std=gnu++11 -fpermissive -fno-exceptions \
-	-fno-threadsafe-statics -flto
+	-fno-exceptions -flto
+CXXFLAGS = $(CFLAGS) -std=gnu++11 -fpermissive -fno-threadsafe-statics
 
 all: prog.hex prog.bin
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 .c.o:
-	$(CC) $(CXXFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 .S.ao:
-	$(CC) $(CXXFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 src/prog: $(CXXOBJS) $(COBJS)
 	$(CXX) -mmcu=atmega328p $^ -o $@
