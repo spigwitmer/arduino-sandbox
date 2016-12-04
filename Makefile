@@ -12,6 +12,7 @@ ARDUINO_SOURCES = $(ARDUINO_SRC_DIR)/wiring_pulse.S \
 	$(ARDUINO_SRC_DIR)/abi.cpp \
 	$(ARDUINO_SRC_DIR)/CDC.cpp \
 	$(ARDUINO_SRC_DIR)/HardwareSerial.cpp \
+	$(ARDUINO_SRC_DIR)/HardwareSerial0.cpp \
 	$(ARDUINO_SRC_DIR)/IPAddress.cpp \
 	$(ARDUINO_SRC_DIR)/main.cpp \
 	$(ARDUINO_SRC_DIR)/new.cpp \
@@ -33,7 +34,8 @@ FASTLED_SOURCES = $(FASTLED_DIR)/lib8tion.cpp \
 	$(FASTLED_DIR)/power_mgt.cpp \
 	$(FASTLED_DIR)/noise.cpp
 
-SOURCES = $(ARDUINO_SOURCES) $(FASTLED_SOURCES) prog.cpp
+SOURCES = $(ARDUINO_SOURCES) $(FASTLED_SOURCES) \
+	src/prog.cpp src/Config.cpp src/SerialUtils.cpp
 
 CXXOBJS = $(patsubst %.cpp, %.o, $(filter %.cpp, $(SOURCES)))
 COBJS = $(patsubst %.c, %.o, $(filter %.c, $(SOURCES)))
@@ -60,16 +62,16 @@ all: prog.hex prog.bin
 .S.ao:
 	$(CC) $(CXXFLAGS) -c -o $@ $<
 
-prog: $(CXXOBJS) $(COBJS)
+src/prog: $(CXXOBJS) $(COBJS)
 	$(CXX) -mmcu=atmega328p $^ -o $@
 
-prog.bin: prog
+prog.bin: src/prog
 	$(OBJCOPY) -O binary -R .eeprom $< $@
 
-prog.hex: prog
+prog.hex: src/prog
 	$(OBJCOPY) -O ihex -R .eeprom $< $@
 
 clean:
-	rm -f $(CXXOBJS) $(COBJS) $(ASMOBJS) prog prog.bin prog.hex
+	rm -f $(CXXOBJS) $(COBJS) $(ASMOBJS) src/prog prog.bin prog.hex
 
 .PHONY: clean
