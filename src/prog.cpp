@@ -14,19 +14,19 @@ using Lightsdude::Config;
 #define MIN_MS_PER_TICK 20
 
 CRGB leds[NUM_LEDS];
-Config cfg(1000, 0x0, 128, 128, 128);
-int header, read_in;
+Config cfg(1000, 0x1, 128, 128, 128);
+int header, read_in, i;
 uint16_t ms_count;
 
 void setup()
 {
-    Serial.begin(9600);
-    Serial.setTimeout(100);
     FastLED.addLeds<WS2811, DATA_PIN, RGB>(leds, NUM_LEDS);
 #if DEBUG_PIN > 0
     pinMode(DEBUG_PIN, OUTPUT);
+    digitalWrite(DEBUG_PIN, LOW);
 #endif
     randomSeed(analogRead(0));
+    Serial.begin(9600);
 
     ms_count = 0;
 }
@@ -35,32 +35,53 @@ void loop()
 {
     if (Serial.available() > 0)
     {
+        delay(250);
+#if DEBUG_PIN > 0
+        for (i = 0; i < 5; ++i)
+        {
+            digitalWrite(DEBUG_PIN, HIGH);
+            delay(50);
+            digitalWrite(DEBUG_PIN, LOW);
+            delay(50);
+        }
+#endif
         int cmd = ReadCommand(&Serial);
-        switch (cmd) {
-            case LD_CMD_CONFIG:
-                read_in = cfg.Read(&Serial);
-                WriteResponse(read_in, &cfg, &Serial);
-                break;
-            case LD_CMD_STATUS:
-                WriteResponse(LD_CONFIG_OK, &cfg, &Serial);
-                break;
-            case -1:
-            default:
-                WriteResponse(LD_CONFIG_ERR, &cfg, &Serial);
-                break;
+        if (cmd == LD_CMD_CONFIG)
+        {
+            read_in = cfg.Read(&Serial);
+            WriteResponse(read_in, &cfg, &Serial);
+        }
+        else if (cmd == LD_CMD_STATUS)
+        {
+            WriteResponse(LD_CONFIG_OK, &cfg, &Serial);
+        }
+        else if (cmd == -1)
+        {
+            WriteResponse(LD_CONFIG_OK, &cfg, &Serial);
+        }
+        else
+        {
+            while (Serial.available() > 0)
+            {
+                Serial.read();
+            }
+            WriteResponse(LD_CONFIG_ERR, &cfg, &Serial);
         }
     }
 
 #if DEBUG_PIN > 0
-    // blink an LED or something cfg.m_mode+1 number of times
-    for (read_in = 0; read_in < cfg.m_mode+1; ++read_in)
+    else
     {
-        digitalWrite(DEBUG_PIN, HIGH);
-        delay(200);
-        digitalWrite(DEBUG_PIN, LOW);
-        delay(200);
+        // blink an LED or something cfg.m_mode+1 number of times
+        for (read_in = 0; read_in < cfg.m_mode+1; ++read_in)
+        {
+            digitalWrite(DEBUG_PIN, HIGH);
+            delay(100);
+            digitalWrite(DEBUG_PIN, LOW);
+            delay(100);
+        }
+        delay(cfg.m_delay);
     }
-    delay(2000);
 #endif
 
     FastLED.show();

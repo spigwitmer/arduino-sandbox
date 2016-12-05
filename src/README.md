@@ -3,10 +3,10 @@
 1. RPi sends a command packet:
 ```
 header: 4 bytes - "LGHT" (0x4c 0x47 0x48 0x54)
-command: 1 byte - (0x01 = status, 0x02 = update)
+command: 1 byte - (0x00 = update, 0x01 = status)
 ```
 
-if command is 0x02 (update):
+if command is 0x00 (update):
 ```
 delay (in ms, little endian): 2 bytes
 mode: 1 byte

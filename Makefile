@@ -13,6 +13,7 @@ ARDUINO_SOURCES = $(ARDUINO_SRC_DIR)/wiring_pulse.S \
 	$(ARDUINO_SRC_DIR)/CDC.cpp \
 	$(ARDUINO_SRC_DIR)/HardwareSerial.cpp \
 	$(ARDUINO_SRC_DIR)/HardwareSerial0.cpp \
+	$(ARDUINO_SRC_DIR)/HardwareSerial1.cpp \
 	$(ARDUINO_SRC_DIR)/IPAddress.cpp \
 	$(ARDUINO_SRC_DIR)/main.cpp \
 	$(ARDUINO_SRC_DIR)/new.cpp \

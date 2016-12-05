@@ -32,7 +32,7 @@ namespace Lightsdude
         read_in = h->read();
         if (read_in == -1)
             return LD_CONFIG_ERR;
-        new_delay = (uint8_t)read_in;
+        new_mode = (uint8_t)read_in;
 
         // rgb values
         read_in = h->read();
