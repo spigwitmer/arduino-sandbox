@@ -1,6 +1,9 @@
 *.o
 *.ao
 *.d
+*.pyc
+*.pyo
+lightsd/lightsd
 prog.hex
 prog.bin
 prog
