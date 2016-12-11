@@ -1,0 +1,28 @@
+.carousel {
+    margin: 0 auto;
+}
+.carousel div.pane {
+    box-shadow: 0 1px #EBEBEB;
+    border: 1px solid;
+    text-align: center;
+    padding-bottom: 10px;
+}
+.horizontal-slider {
+    height: 25px;
+    width: 400px;
+    border: 2px solid #ff7200;
+    border-radius: 25px;
+}
+.horizontal-slider .handle {
+    font-size: 0.9em;
+    text-align: center;
+    background-color: #ff7200;
+    color: yellow;
+    cursor: pointer;
+    top: 02px;
+    width: 28px;
+    height: 28px;
+    border-radius: 20px;
+    border: 2px solid white;
+    top: -4px;
+}
