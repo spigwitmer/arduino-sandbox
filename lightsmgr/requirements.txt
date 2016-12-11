@@ -1,0 +1,4 @@
+Flask==0.10.1
+Twisted==16.6.0
+service-identity==16.0.0
+setuptools==30.3.0

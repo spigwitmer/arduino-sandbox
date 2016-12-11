@@ -4,3 +4,6 @@
 [submodule "arduino"]
 	path = arduino
 	url = https://github.com/arduino/Arduino.git
+[submodule "lightsd/rpi_ws281x"]
+	path = lightsd/rpi_ws281x
+	url = https://github.com/jgarff/rpi_ws281x.git
