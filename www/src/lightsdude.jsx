@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Button } from 'react-bootstrap';
 import { SketchPicker } from 'react-color';
-import ReactSlider from 'react-slider';
+import Slider from 'rc-slider';
 import ReactSwipe from 'react-swipe';
 
 class SingleLightsPane extends React.Component {
@@ -74,6 +74,7 @@ class BlinkLightsPane extends React.Component {
         this.handleSubmit = this.handleSubmit.bind(this);
         this.handleColorChange = this.handleColorChange.bind(this);
         this.handleDelayChange = this.handleDelayChange.bind(this);
+        this.getDispDelay = this.getDispDelay.bind(this);
     }
 
     getColorHex() {
@@ -101,7 +102,7 @@ class BlinkLightsPane extends React.Component {
         this.setState({delay: value});
     }
 
-    getDispDelay() {
+    getDispDelay(val) {
         if (this.state.delay < 1000) {
             return "" + this.state.delay + "ms";
         } else {
@@ -120,13 +121,12 @@ class BlinkLightsPane extends React.Component {
                 <br /><br />
                 <div>
                     <div style={{width: 400, height: 55, margin: '0 auto'}}>
-                        <h3 style={{textAlign: 'left'}}>Delay (shorter means faster): {this.getDispDelay()}</h3>
+                        <h3 style={{textAlign: 'left'}}>Delay (shorter means faster):</h3>
                         <div style={{width: 400, margin: '0 auto'}}>
-                            <ReactSlider value={this.state.delay} step={100}
-                                         min={100} max={60000} orientation="horizontal"
-                                         onChange={this.handleDelayChange}
-                                         className="horizontal-slider"
-                                         withBars />
+                            <Slider value={this.state.delay} step={100}
+                                    min={100} max={10000}
+                                    onChange={this.handleDelayChange}
+                                    tipFormatter={this.getDispDelay} />
                         </div>
                     </div>
                     <br /><br />

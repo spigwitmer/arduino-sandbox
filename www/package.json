@@ -10,11 +10,11 @@
   "license": "ISC",
   "dependencies": {
     "bootstrap": "^3.3.7",
+    "rc-slider": "^5.4.0",
     "react": "^15.4.1",
     "react-bootstrap": "^0.30.7",
     "react-color": "^2.10.0",
     "react-dom": "^15.4.1",
-    "react-slider": "^0.7.0",
     "react-swipe": "^5.0.6",
     "swipe-js-iso": "^2.0.3"
   },
