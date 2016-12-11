@@ -14,12 +14,13 @@ using Lightsdude::Config;
 #define MIN_MS_PER_TICK 20
 
 CRGB leds[NUM_LEDS];
-Config cfg(1000, 0x1, 128, 128, 128);
+Config *cfg;
 int header, read_in, i;
 uint16_t ms_count;
 
 void setup()
 {
+    cfg = new Config(1000, 0x1, 128, 128, 128);
     FastLED.addLeds<WS2811, DATA_PIN, RGB>(leds, NUM_LEDS);
 #if DEBUG_PIN > 0
     pinMode(DEBUG_PIN, OUTPUT);
@@ -36,28 +37,19 @@ void loop()
     if (Serial.available() > 0)
     {
         delay(250);
-#if DEBUG_PIN > 0
-        for (i = 0; i < 5; ++i)
-        {
-            digitalWrite(DEBUG_PIN, HIGH);
-            delay(50);
-            digitalWrite(DEBUG_PIN, LOW);
-            delay(50);
-        }
-#endif
         int cmd = ReadCommand(&Serial);
         if (cmd == LD_CMD_CONFIG)
         {
-            read_in = cfg.Read(&Serial);
-            WriteResponse(read_in, &cfg, &Serial);
+            read_in = cfg->Read(&Serial);
+            WriteResponse(read_in, cfg, &Serial);
         }
         else if (cmd == LD_CMD_STATUS)
         {
-            WriteResponse(LD_CONFIG_OK, &cfg, &Serial);
+            WriteResponse(LD_CONFIG_OK, cfg, &Serial);
         }
         else if (cmd == -1)
         {
-            WriteResponse(LD_CONFIG_OK, &cfg, &Serial);
+            WriteResponse(LD_CONFIG_OK, cfg, &Serial);
         }
         else
         {
@@ -65,24 +57,24 @@ void loop()
             {
                 Serial.read();
             }
-            WriteResponse(LD_CONFIG_ERR, &cfg, &Serial);
+            WriteResponse(LD_CONFIG_ERR, cfg, &Serial);
         }
     }
 
-#if DEBUG_PIN > 0
     else
     {
+#if DEBUG_PIN > 0
         // blink an LED or something cfg.m_mode+1 number of times
-        for (read_in = 0; read_in < cfg.m_mode+1; ++read_in)
+        for (read_in = 0; read_in < cfg->m_mode+1; ++read_in)
         {
             digitalWrite(DEBUG_PIN, HIGH);
             delay(100);
             digitalWrite(DEBUG_PIN, LOW);
             delay(100);
         }
-        delay(cfg.m_delay);
-    }
+        delay(cfg->m_delay);
 #endif
+    }
 
     FastLED.show();
 }

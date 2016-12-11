@@ -27,52 +27,68 @@ class Config(object):
         fp.write(struct.pack('B', self.green))
         fp.write(struct.pack('B', self.blue))
 
+    def construct_config_packet(self):
+        return bytes(struct.pack('<HBBBB', self.delay, self.mode, self.red,
+                           self.green, self.blue))
 
-class PacketUtils(object):
+
+class CommandWrapper(object):
+    def __init__(self, cfg=None):
+        self.cfg = cfg
+
     def send_request(self, request_type, fp):
-        self.send_header(fp)
-        self.send_request_code(fp, request_type)
+        if request_type == LD_CMD_CONFIG and not self.cfg:
+            raise Exception('Requested config update without config')
 
-    def send_header(self, fp):
-        fp.write(bytes('LGHT'))
+        # header + request code
+        packet = bytes('LGHT') + bytes(chr(request_type))
 
-    def send_request_code(self, fp, code):
-        fp.write(bytes(''.join(map(chr, [code]))))
+        if request_type == LD_CMD_CONFIG:
+            packet += self.cfg.construct_config_packet()
+        print 'sending request packet: %s' % repr(packet)
+        fp.write(packet)
+        fp.flush()
 
-    def send_config(self, config, fp):
-        config.send(fp)
+        return self.recv_reply(fp)
 
     def expect_header(self, fp):
         actual_header = fp.read(4)
         if actual_header != 'LGHT':
-            raise Exception('Header was %s' % actual_header)
+            raise Exception('Header was %s' % repr(actual_header))
+        print 'got correct header'
 
     def recv_reply(self, fp):
         self.expect_header(fp)
         status, = struct.unpack('B', fp.read(1))
-        delay, = struct.unpack('<H', fp.read(2))
-        mode, = struct.unpack('B', fp.read(1))
-        red, = struct.unpack('B', fp.read(1))
-        green, = struct.unpack('B', fp.read(1))
-        blue, = struct.unpack('B', fp.read(1))
-        return (status, Config(delay, mode, red, green, blue))
+        self.cfg.delay, = struct.unpack('<H', fp.read(2))
+        self.cfg.mode, = struct.unpack('B', fp.read(1))
+        self.cfg.red, = struct.unpack('B', fp.read(1))
+        self.cfg.green, = struct.unpack('B', fp.read(1))
+        self.cfg.blue, = struct.unpack('B', fp.read(1))
+        return (status, self.cfg)
 
 
 if __name__ == '__main__':
-    c = Config(500, 4, 90, 90, 90)
+    c = Config(2500, 5, 70, 90, 70)
 
-    pu = PacketUtils()
-    with serial.Serial(CDC_DEVICE, CDC_BAUD, timeout=3) as device:
+    cmd = CommandWrapper(c)
+    print 'opening device'
+    with serial.Serial(CDC_DEVICE, CDC_BAUD, timeout=6) as device:
         time.sleep(1)
+        print 'flushing input'
         device.readall()
-        pu.send_request(LD_CMD_CONFIG, device)
-        c.send(device)
-        device.flush()
+        print 'flushed input'
+        cmd_code = LD_CMD_CONFIG
+        if len(sys.argv) > 1 and sys.argv[1] == '--status':
+            cmd_code = LD_CMD_STATUS
+        status, current_cfg = cmd.send_request(cmd_code, device)
 
-        status, current_cfg = pu.recv_reply(device)
-        print 'status: %d' % status
-        print 'delay: %d' % current_cfg.delay
-        print 'mode: %d' % current_cfg.mode
-        print 'red: %d' % current_cfg.red
-        print 'green: %d' % current_cfg.green
-        print 'blue: %d' % current_cfg.blue
+        if cmd_code == LD_CMD_CONFIG:
+            print 'new config uploaded'
+        elif cmd_code == LD_CMD_STATUS:
+            print 'status: %d' % status
+            print 'delay: %d' % c.delay
+            print 'mode: %d' % c.mode
+            print 'red: %d' % c.red
+            print 'green: %d' % c.green
+            print 'blue: %d' % c.blue
