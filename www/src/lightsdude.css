@@ -12,6 +12,7 @@
     width: 400px;
     border: 2px solid #ff7200;
     border-radius: 25px;
+    position: relative;
 }
 .horizontal-slider .handle {
     font-size: 0.9em;
@@ -25,4 +26,5 @@
     border-radius: 20px;
     border: 2px solid white;
     top: -4px;
+    position: relative;
 }
