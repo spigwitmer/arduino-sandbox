@@ -16,7 +16,8 @@
     "react-color": "^2.10.0",
     "react-dom": "^15.4.1",
     "react-swipe": "^5.0.6",
-    "swipe-js-iso": "^2.0.3"
+    "swipe-js-iso": "^2.0.3",
+    "whatwg-fetch": "^2.0.1"
   },
   "devDependencies": {
     "babel-core": "^6.18.2",

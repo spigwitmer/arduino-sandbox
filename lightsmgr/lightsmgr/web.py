@@ -62,7 +62,7 @@ class LightsResponse(object):
         self.b = b
 
 class LightStateManager(object):
-    def __init__(self, r=155, g=155, b=155,
+    def __init__(self, r=75, g=75, b=75,
                  delay=1000, mode=0):
         self.delay = delay
         self.mode = mode
@@ -116,17 +116,22 @@ class LightStateManager(object):
 LIGHTS_STATE = LightStateManager()
 LIGHTS_STATE.retrieve_state()
 
-@app.route('/lights', methods=['GET'])
+@app.route('/lights', methods=['GET', 'OPTIONS'])
 def get_current_state():
-    LIGHTS_STATE.retrieve_state()
-    resp = Response(json.dumps({
-        'mode': LIGHTS_STATE.mode,
-        'delay': LIGHTS_STATE.delay,
-        'r': LIGHTS_STATE.r,
-        'g': LIGHTS_STATE.g,
-        'b': LIGHTS_STATE.b
-    }))
-    resp.headers['Content-Type'] = 'application/json'
+    if request.method == 'GET':
+        LIGHTS_STATE.retrieve_state()
+        resp = Response(json.dumps({
+            'mode': LIGHTS_STATE.mode,
+            'delay': LIGHTS_STATE.delay,
+            'r': LIGHTS_STATE.r,
+            'g': LIGHTS_STATE.g,
+            'b': LIGHTS_STATE.b
+        }))
+        resp.headers['Content-Type'] = 'application/json'
+    else:
+        resp = Response("")
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
     return resp
 
 @app.route('/lights', methods=['POST'])
@@ -152,4 +157,8 @@ def set_state():
 
     LIGHTS_STATE.set_state(delay, mode, r, g, b)
 
-    return "", 202
+    resp = Response("")
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    resp.status_code = 202
+
+    return resp

@@ -4,15 +4,25 @@ import { Button } from 'react-bootstrap';
 import { SketchPicker } from 'react-color';
 import Slider from 'rc-slider';
 import ReactSwipe from 'react-swipe';
+import 'whatwg-fetch';
 
-class SingleLightsPane extends React.Component {
+var g_app;
+
+class LightsModePane extends React.Component {
+    handleSubmit(event) {
+        g_app.updateLightsState(this.state);
+    }
+}
+
+class SingleLightsPane extends LightsModePane {
     constructor(props) {
         super(props);
-        this.mode = 1;
         this.state = {
             r: 155,
             g: 155,
-            b: 155
+            b: 155,
+            delay: 60000,
+            mode: 1
         };
         this.handleSubmit = this.handleSubmit.bind(this);
         this.handleColorChange = this.handleColorChange.bind(this);
@@ -23,12 +33,6 @@ class SingleLightsPane extends React.Component {
             g = (this.state.g < 16 ? "0" : "") + this.state.g.toString(16),
             b = (this.state.b < 16 ? "0" : "") + this.state.b.toString(16);
         return '#' + r + g + b;
-    }
-
-    handleSubmit(event) {
-        var curstate = this.state;
-        alert('clicked submit for single lights (color: '+this.getColorHex()+')');
-        event.preventDefault();
     }
 
     handleColorChange(color, event) {
@@ -61,15 +65,66 @@ class SingleLightsPane extends React.Component {
     }
 }
 
-class BlinkLightsPane extends React.Component {
+class RandomXmasPane extends LightsModePane {
     constructor(props) {
         super(props);
-        this.mode = 2;
         this.state = {
             r: 155,
             g: 155,
             b: 155,
-            delay: 1000
+            delay: 1000,
+            mode: 3
+        };
+        this.handleSubmit = this.handleSubmit.bind(this);
+        this.handleDelayChange = this.handleDelayChange.bind(this);
+        this.getDispDelay = this.getDispDelay.bind(this);
+    }
+
+    handleDelayChange(value) {
+        this.setState({delay: value});
+    }
+
+    getDispDelay(val) {
+        if (this.state.delay < 1000) {
+            return "" + this.state.delay + "ms";
+        } else {
+            return "" + (this.state.delay / 1000) + "s";
+        }
+    }
+
+    render() {
+        return (
+            <div style={{textAlign: 'center'}}>
+                <div style={{width: 400, height: 55, margin: '0 auto'}}>
+                    <h3 style={{textAlign: 'left'}}>Interval:</h3>
+                    <div style={{width: 400, margin: '0 auto'}}>
+                        <Slider value={this.state.delay} step={100}
+                                min={100} max={30000}
+                                onChange={this.handleDelayChange}
+                                tipFormatter={this.getDispDelay} />
+                    </div>
+                </div>
+                <br /><br />
+                <div style={{width: 400, margin: '0 auto'}}>
+                    <Button type="button" bsSize="large"
+                            bsStyle="success" onClick={this.handleSubmit}>
+                            Change
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+}
+
+class BlinkLightsPane extends LightsModePane {
+    constructor(props) {
+        super(props);
+        this.state = {
+            r: 155,
+            g: 155,
+            b: 155,
+            delay: 1000,
+            mode: 2
         };
         this.handleSubmit = this.handleSubmit.bind(this);
         this.handleColorChange = this.handleColorChange.bind(this);
@@ -82,12 +137,6 @@ class BlinkLightsPane extends React.Component {
             g = (this.state.g < 16 ? "0" : "") + this.state.g.toString(16),
             b = (this.state.b < 16 ? "0" : "") + this.state.b.toString(16);
         return '#' + r + g + b;
-    }
-
-    handleSubmit(event) {
-        var curstate = this.state;
-        alert('clicked submit for blink (color: '+this.getColorHex()+', delay: '+this.state.delay+')');
-        event.preventDefault();
     }
 
     handleColorChange(color, event) {
@@ -121,7 +170,7 @@ class BlinkLightsPane extends React.Component {
                 <br /><br />
                 <div>
                     <div style={{width: 400, height: 55, margin: '0 auto'}}>
-                        <h3 style={{textAlign: 'left'}}>Delay (shorter means faster):</h3>
+                        <h3 style={{textAlign: 'left'}}>Interval:</h3>
                         <div style={{width: 400, margin: '0 auto'}}>
                             <Slider value={this.state.delay} step={100}
                                     min={100} max={10000}
@@ -145,8 +194,13 @@ class BlinkLightsPane extends React.Component {
 class App extends React.Component {
     constructor(props) {
         super(props);
+        console.log(props);
+        this.lightsmgr_endpoint = props.endpoint;
         this.next = this.next.bind(this);
         this.prev = this.prev.bind(this);
+        this.fetchLightsState = this.fetchLightsState.bind(this);
+        this.handleStateResponse = this.handleStateResponse.bind(this);
+        g_app = this;
     }
 
     next() {
@@ -157,6 +211,49 @@ class App extends React.Component {
         this.refs.lightmodes.prev();
     }
 
+    handleStateResponse(resp) {
+        if (resp.mode != 0) {
+            this.refs.lightmodes.slide(resp.mode-1, 200);
+        }
+        const state = {
+            r: resp.r,
+            g: resp.g,
+            b: resp.b,
+            delay: resp.delay
+        };
+        this.refs.mode_single.setState(state);
+        this.refs.mode_blink.setState(state);
+        this.refs.mode_xmas.setState(state);
+    }
+
+    fetchLightsState() {
+        fetch(this.lightsmgr_endpoint).then(function(resp) {
+            if (!resp.ok) {
+                throw new Error("Server error when contacting backend");
+            }
+            return resp.json();
+        }).then(this.handleStateResponse).catch(function (ex) {
+            console.log(ex);
+        });
+    }
+
+    updateLightsState(new_state) {
+        fetch(this.lightsmgr_endpoint, {
+            method: "POST",
+            body: JSON.stringify(new_state),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).then(function(resp) {
+            if (!resp.ok) {
+                throw new Error("Server error when contacting backend");
+            }
+            return resp.json();
+        }).then(this.handleStateResponse).catch(function (ex) {
+            console.log(ex);
+        });
+    }
+
     render() {
         return (
             <div>
@@ -164,15 +261,15 @@ class App extends React.Component {
                             draggable={true} key={3}>
                     <div className="pane" key={1}>
                         <h2>Single color</h2>
-                        <SingleLightsPane />
+                        <SingleLightsPane ref="mode_single" />
                     </div>
                     <div className="pane" key={2}>
                         <h2>Blink</h2>
-                        <BlinkLightsPane />
+                        <BlinkLightsPane ref="mode_blink" />
                     </div>
                     <div className="pane" key={3}>
-                        <h2>Random Christmas lights</h2>
-                        <div>todo (christmas)</div>
+                        <h2>Random Christmas Lights</h2>
+                        <RandomXmasPane ref="mode_xmas" />
                     </div>
                 </ReactSwipe>
                 <br/>
@@ -185,4 +282,5 @@ class App extends React.Component {
     }
 }
 
-ReactDOM.render(<App/>, document.getElementById('app'));
+ReactDOM.render(<App endpoint="http://localhost:8081/lights" />, document.getElementById('app'));
+g_app.fetchLightsState();
