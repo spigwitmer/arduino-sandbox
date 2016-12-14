@@ -1,0 +1,6 @@
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/twistd -n web --wsgi lightsmgr.web.app --port 80
+User=lightsmgr
+Group=lights
+After=lightsd.service

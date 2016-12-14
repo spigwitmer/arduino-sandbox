@@ -1,0 +1,5 @@
+[Service]
+Type=simple
+ExecStart=/usr/bin/lightsd
+ExecStartPost=/usr/bin/lightsd_socket_fix.sh
+Restart=on-failure
