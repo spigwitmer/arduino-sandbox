@@ -16,15 +16,15 @@
 #include "state.h"
 #include "rpi_ws281x/ws2811.h"
 
-#define LIGHTSD_SOCKET "/home/pat/lightsd.sock"
+#define LIGHTSD_SOCKET "/run/lightsd.sock"
 #define MIN_DELAY_PER_FRAME 100
 
 lightsd_config_t g_lights_config = {
     .delay = 1000,
-    .mode = 0,
-    .r = 92,
-    .g = 93,
-    .b = 94
+    .mode = 1,
+    .r = 70,
+    .g = 70,
+    .b = 70
 };
 
 void debug_printf(const char *fmt, ...) {
@@ -173,11 +173,18 @@ lightsd_state_t g_lights_state = {
 
 int main() {
     struct sockaddr_un client;
+    ws2811_return_t wsret;
     int serv_sock, cli_sock, len, recv_buf_used,
-        ret, cmd, tick_count = 0, config_change;
+        ret, cmd, tick_count = 0, config_change, running = 1;
     uint32_t ticks_per_frame = g_lights_config.delay / MIN_DELAY_PER_FRAME;
     uint8_t recv_buf[RECV_BUF_SIZE];
     uint64_t curtime, timediff, default_interval_us = MIN_DELAY_PER_FRAME*1000;
+
+    wsret = ws2811_init(&g_lights_state.led);
+    if ( wsret != WS2811_SUCCESS ) {
+        fprintf(stderr, "ws2811_init: %s\n", ws2811_get_return_t_str(wsret));
+        return 1;
+    }
 
     serv_sock = create_server_socket();
     if (serv_sock < 0) {
@@ -186,7 +193,7 @@ int main() {
     config_sock = -1;
     printf("Lightsd up and running\n");
     debug_printf("sizeof lightsd_request_t: %d\n", sizeof(lightsd_request_t));
-    while (1) {
+    while (running) {
         curtime = get_monotonic_time_us();
         init_connection_if_needed(serv_sock);
         if (config_sock > 0) {
@@ -194,11 +201,16 @@ int main() {
             if (config_change == 1) {
                 ticks_per_frame = g_lights_config.delay / MIN_DELAY_PER_FRAME;
                 tick_count = 0;
+                g_lights_state.frame_number = 0;
             }
         }
 
         if (tick_count == 0) {
             update_lights(&g_lights_state, &g_lights_config);
+            wsret = ws2811_render(&g_lights_state.led);
+            if (wsret != WS2811_SUCCESS) {
+                fprintf(stderr, "ws2811_render: %s\n", ws2811_get_return_t_str(wsret));
+            }
         }
 
         tick_count = (tick_count + 1) % ticks_per_frame;

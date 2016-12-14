@@ -8,7 +8,16 @@
 void update_lights(lightsd_state_t *state, const lightsd_config_t *conf) {
     int i;
     switch(conf->mode) {
-        case LD_MODE_BLINK: // todo
+        case LD_MODE_BLINK:
+            for (i = 0; i < NUM_LEDS; ++i) {
+                if (!state->frame_number) {
+                    state->led.channel[0].leds[i] = CFG_RGB(conf);
+                } else {
+                    state->led.channel[0].leds[i] = 0;
+                }
+            }
+            state->frame_number = (state->frame_number + 1) % 2;
+            break;
         case LD_MODE_XMAS: // todo
         case LD_MODE_POWEROFF:
             for (i = 0; i < NUM_LEDS; ++i) { 
