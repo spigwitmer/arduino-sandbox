@@ -3,11 +3,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <stdlib.h>
 #include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdarg.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <errno.h>
 #include "lightsd.h"
@@ -20,11 +22,11 @@
 #define MIN_DELAY_PER_FRAME 100
 
 lightsd_config_t g_lights_config = {
-    .delay = 1000,
-    .mode = 1,
-    .r = 70,
-    .g = 70,
-    .b = 70
+    .delay = 10000,
+    .mode = LD_MODE_XMAS,
+    .r = 25,
+    .g = 25,
+    .b = 25
 };
 
 void debug_printf(const char *fmt, ...) {
@@ -63,6 +65,7 @@ unsigned int create_server_socket() {
 
 #define RECV_BUF_SIZE 16
 
+int g_running = 1;
 int config_sock;
 uint8_t recv_buf[RECV_BUF_SIZE];
 int recv_buf_used;
@@ -171,14 +174,29 @@ lightsd_state_t g_lights_state = {
     }
 };
 
+void sighandler_cb(int sig) {
+    g_running = 0;
+    g_lights_config.delay = 100;
+}
+
+void install_sighandlers() {
+    struct sigaction action = {
+        .sa_handler = sighandler_cb
+    };
+    sigaction(SIGINT, &action, NULL);
+    sigaction(SIGTERM, &action, NULL);
+}
+
 int main() {
     struct sockaddr_un client;
     ws2811_return_t wsret;
     int serv_sock, cli_sock, len, recv_buf_used,
-        ret, cmd, tick_count = 0, config_change, running = 1;
+        ret, cmd, tick_count = 0, config_change;
     uint32_t ticks_per_frame = g_lights_config.delay / MIN_DELAY_PER_FRAME;
     uint8_t recv_buf[RECV_BUF_SIZE];
     uint64_t curtime, timediff, default_interval_us = MIN_DELAY_PER_FRAME*1000;
+
+    srand(time(NULL));
 
     wsret = ws2811_init(&g_lights_state.led);
     if ( wsret != WS2811_SUCCESS ) {
@@ -191,9 +209,11 @@ int main() {
         return 1;
     }
     config_sock = -1;
+
+    install_sighandlers();
     printf("Lightsd up and running\n");
     debug_printf("sizeof lightsd_request_t: %d\n", sizeof(lightsd_request_t));
-    while (running) {
+    while (g_running) {
         curtime = get_monotonic_time_us();
         init_connection_if_needed(serv_sock);
         if (config_sock > 0) {
@@ -221,5 +241,8 @@ int main() {
             usleep(default_interval_us - timediff);
         }
     }
+    g_lights_config.mode = LD_MODE_POWEROFF;
+    update_lights(&g_lights_state, &g_lights_config);
+    ws2811_render(&g_lights_state.led);
     return 0;
 }
