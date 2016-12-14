@@ -10,13 +10,16 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <errno.h>
+#include "lightsd.h"
 #include "config.h"
 #include "proto.h"
+#include "state.h"
+#include "rpi_ws281x/ws2811.h"
 
 #define LIGHTSD_SOCKET "/home/pat/lightsd.sock"
 #define MIN_DELAY_PER_FRAME 100
 
-lightsd_config_t g_lights_state = {
+lightsd_config_t g_lights_config = {
     .delay = 1000,
     .mode = 0,
     .r = 92,
@@ -97,7 +100,7 @@ int process_config_request_if_needed() {
     } else if (len > 0) {
         recv_buf_used += len;
         ret = ld_process_request(recv_buf, recv_buf_used,
-                                 &cmd, &g_lights_state);
+                                 &cmd, &g_lights_config);
         debug_printf("ld_process_request ret: %d\n", ret);
         switch(ret) {
             case LD_CONFIG_SHORT:
@@ -106,9 +109,9 @@ int process_config_request_if_needed() {
                 switch (cmd) {
                 case LD_CMD_SET_CONFIG:
                     debug_printf("new config (%hu, %hhu, %hhu, %hhu, %hhu)\n",
-                                 g_lights_state.delay, g_lights_state.mode,
-                                 g_lights_state.r, g_lights_state.g,
-                                 g_lights_state.b);
+                                 g_lights_config.delay, g_lights_config.mode,
+                                 g_lights_config.r, g_lights_config.g,
+                                 g_lights_config.b);
                     change = 1;
                     break;
                 case LD_CMD_GET_CONFIG:
@@ -117,7 +120,7 @@ int process_config_request_if_needed() {
                 }
             case LD_CONFIG_ERR:
                 recv_buf_used = 0;
-                ret = ld_send_reply(config_sock, ret, &g_lights_state);
+                ret = ld_send_reply(config_sock, ret, &g_lights_config);
                 printf("ld_send_reply ret: %d\n", ret);
                 if (ret < 0) {
                     perror("ld_send_reply");
@@ -145,11 +148,34 @@ uint64_t get_monotonic_time_us() {
     return (curtime.tv_sec * 1000000) + (curtime.tv_nsec / 1000);
 }
 
+lightsd_state_t g_lights_state = {
+    .frame_number = 0,
+    .led = {
+        .freq = WS2811_TARGET_FREQ,
+        .dmanum = 5,
+        .channel = {
+            [0] = {
+                .gpionum = GPIO_PIN,
+                .count = NUM_LEDS,
+                .invert = 0,
+                .brightness = 255,
+                .strip_type = WS2811_STRIP_RGB
+            },
+            [1] = {
+                .gpionum = 0,
+                .count = 0,
+                .invert = 0,
+                .brightness = 0
+            }
+        }
+    }
+};
+
 int main() {
     struct sockaddr_un client;
     int serv_sock, cli_sock, len, recv_buf_used,
         ret, cmd, tick_count = 0, config_change;
-    uint32_t ticks_per_frame = g_lights_state.delay / MIN_DELAY_PER_FRAME;
+    uint32_t ticks_per_frame = g_lights_config.delay / MIN_DELAY_PER_FRAME;
     uint8_t recv_buf[RECV_BUF_SIZE];
     uint64_t curtime, timediff, default_interval_us = MIN_DELAY_PER_FRAME*1000;
 
@@ -166,14 +192,15 @@ int main() {
         if (config_sock > 0) {
             config_change = process_config_request_if_needed();
             if (config_change == 1) {
-                ticks_per_frame = g_lights_state.delay / MIN_DELAY_PER_FRAME;
+                ticks_per_frame = g_lights_config.delay / MIN_DELAY_PER_FRAME;
                 tick_count = 0;
             }
         }
-        if (tick_count % ticks_per_frame == 0) {
-            // update lights
-            debug_printf("Update lights on mode %d\n", g_lights_state.mode);
+
+        if (tick_count == 0) {
+            update_lights(&g_lights_state, &g_lights_config);
         }
+
         tick_count = (tick_count + 1) % ticks_per_frame;
         timediff = get_monotonic_time_us() - curtime;
         if (timediff > default_interval_us) {

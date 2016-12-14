@@ -7,6 +7,11 @@
 #define LD_CONFIG_ERR   1  // bad configuration data
 #define LD_CONFIG_SHORT 2  // not enough data
 
+#define LD_MODE_POWEROFF 0
+#define LD_MODE_STATIC 1
+#define LD_MODE_BLINK 2
+#define LD_MODE_XMAS 3
+
 typedef struct {
     uint16_t delay;
     uint8_t mode;
