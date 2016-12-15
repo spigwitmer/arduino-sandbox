@@ -282,5 +282,5 @@ class App extends React.Component {
     }
 }
 
-ReactDOM.render(<App endpoint="http://localhost:8081/lights" />, document.getElementById('app'));
+ReactDOM.render(<App endpoint="/ctl/lights" />, document.getElementById('app'));
 g_app.fetchLightsState();

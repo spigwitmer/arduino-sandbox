@@ -1,6 +1,11 @@
+[Unit]
+Requires=lightsd.service
+After=lightsd.service
+
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/twistd -n web --wsgi lightsmgr.web.app --port 80
-User=lightsmgr
-Group=lights
-After=lightsd.service
+ExecStart=/usr/local/bin/twistd -n -u lightsmgr -g lights --pidfile /run/lightsd/lightsmgr.pid --syslog -y /var/www/lightsmgr.rpy
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
